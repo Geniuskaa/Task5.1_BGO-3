@@ -60,7 +60,7 @@ func isValid(num string) error {
 	return ErrInvalidCardNumber
 }
 
-func (s *Service) Card2Card(from, to string, amount int64) (total int64, err error) {
+func (s *Service) Card2Card(from, to string, amount int64, time int64) (total int64, err error) {
 	errOfValidCardFrom := isValid(from)
 	if errOfValidCardFrom != nil {
 		fmt.Println("Введены некоректные данные карты.")
@@ -87,7 +87,7 @@ func (s *Service) Card2Card(from, to string, amount int64) (total int64, err err
 
 	if s.CardSvc.StoreOfCards[indexOfFrom].Balance > amountInCents { // Проверяем хватает ли денег на балансе
 		if amountInCents > s.fromTinkMinSum {
-			s.addTransaction(indexOfFrom, amount)
+			s.addTransaction(indexOfFrom, amount, time)
 			s.CardSvc.StoreOfCards[indexOfFrom].Balance -= amountInCents
 			s.CardSvc.StoreOfCards[indexOfTo].Balance += amountInCents
 			return amount, nil
@@ -100,18 +100,18 @@ func (s *Service) Card2Card(from, to string, amount int64) (total int64, err err
 	return 0, ErrMoneyOnCardOfSenderDontEnough
 }
 
-func (s *Service) addTransaction(index int, amount int64) {
+func (s *Service) addTransaction(index int, amount int64, time int64) {
 		s.CardSvc.StoreOfCards[index].Transactions = append(s.CardSvc.StoreOfCards[index].Transactions, &transaction.Transaction{
 		Id:     20, // rand.Int63n(20)
 		Amount: amount * 100,
 		MCC:    "5090",
-		//Date:   time.Now().Unix(),
+		Date:   time,
 		Status: "Completed",
 	})
 }
 
-func (s *Service) Purchase(amount int64, index int) {
-	s.addTransaction(index, amount)
+func (s *Service) Purchase(amount int64, index int, time int64) {
+	s.addTransaction(index, amount, time)
 	fmt.Println("Сумма вашей покупки ", amount, " рублей")
 }
 
