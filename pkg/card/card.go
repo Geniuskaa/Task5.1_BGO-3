@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Card struct {
@@ -21,6 +22,11 @@ type Card struct {
 type Service struct {
 	bank string
 	StoreOfCards []*Card
+}
+
+type part struct {
+	monthTimestamp int64
+	transactions []*transaction.Transaction
 }
 
 func NewService(storeOfCards []*Card, bankName string) *Service {
@@ -70,151 +76,43 @@ func sum(transactions []*transaction.Transaction) int64 {
 	return result
 }
 
-func (t *Card) SumConcurrently(goroutines int) int64 {
+func (t *Card) SumConcurrently(goroutines int, from time.Time, to time.Time) int64 {
 	wg := sync.WaitGroup{}
 	wg.Add(goroutines)
 
-	transactionsByMonths := make([][]*transaction.Transaction, 12, 12)
+	months := make([]*part, 0)
 
+	next := from
+	for next.Before(to) {
+		months = append(months, &part{
+			monthTimestamp: next.Unix(),
+		})
+		next = next.AddDate(0, 1, 0)
+	}
+	months = append(months, &part{
+		monthTimestamp: to.Unix(),
+	})
 
-	stop := 0
-	for i := range transactionsByMonths {
-
-			switch i {
-
-			case 0:
-				for _, sample := range t.Transactions {
-					if sample.Date >= 1612137600 {
-						break
-					}
-					stop++
-					transactionsByMonths[i] = append(transactionsByMonths[i], sample)
+	for j, transaction := range t.Transactions {
+		if months[0].monthTimestamp <= transaction.Date.Unix() && transaction.Date.Unix() < months[len(months) - 1].monthTimestamp {
+			for i := 1; i < len(months); i++ {
+				if t.Transactions[j].Date.Unix() < months[i].monthTimestamp {
+					months[i - 1].transactions = append(months[i - 1].transactions, t.Transactions[j])
+					break
 				}
-				break
-
-			case 1:
-				for _, sample := range t.Transactions[stop :] {
-					if sample.Date >= 1614556800 {
-						break
-					}
-					stop++
-					transactionsByMonths[i] = append(transactionsByMonths[i], sample)
-				}
-				break
-
-			case 2:
-				for _, sample := range t.Transactions[stop :] {
-					if sample.Date >= 1617235200 {
-						break
-					}
-					stop++
-					transactionsByMonths[i] = append(transactionsByMonths[i], sample)
-				}
-				break
-
-			case 3:
-				for _, sample := range t.Transactions[stop :] {
-					if sample.Date >= 1619827200 {
-						break
-					}
-					stop++
-					transactionsByMonths[i] = append(transactionsByMonths[i], sample)
-				}
-				break
-
-			case 4:
-				for _, sample := range t.Transactions[stop :] {
-					if sample.Date >= 1622505600 {
-						break
-					}
-					stop++
-					transactionsByMonths[i] = append(transactionsByMonths[i], sample)
-				}
-				break
-
-			case 5:
-				for _, sample := range t.Transactions[stop :] {
-					if sample.Date >= 1625097600 {
-						break
-					}
-					stop++
-					transactionsByMonths[i] = append(transactionsByMonths[i], sample)
-				}
-				break
-
-			case 6:
-				for _, sample := range t.Transactions[stop :] {
-					if sample.Date >= 1627776000 {
-						break
-					}
-					stop++
-					transactionsByMonths[i] = append(transactionsByMonths[i], sample)
-				}
-				break
-
-			case 7:
-				for _, sample := range t.Transactions[stop :] {
-					if sample.Date >= 1630454400 {
-						break
-					}
-					stop++
-					transactionsByMonths[i] = append(transactionsByMonths[i], sample)
-				}
-				break
-
-			case 8:
-				for _, sample := range t.Transactions[stop :] {
-					if sample.Date >= 1633046400 {
-						break
-					}
-					stop++
-					transactionsByMonths[i] = append(transactionsByMonths[i], sample)
-				}
-				break
-
-			case 9:
-				for _, sample := range t.Transactions[stop :] {
-					if sample.Date >= 1635724800 {
-						break
-					}
-					stop++
-					transactionsByMonths[i] = append(transactionsByMonths[i], sample)
-				}
-				break
-
-			case 10:
-				for _, sample := range t.Transactions[stop :] {
-					if sample.Date >= 1638316800 {
-						break
-					}
-					stop++
-					transactionsByMonths[i] = append(transactionsByMonths[i], sample)
-				}
-				break
-
-			case 11:
-				for _, sample := range t.Transactions[stop :] {
-					if sample.Date >= 1640995200 {
-						break
-					}
-					stop++
-					transactionsByMonths[i] = append(transactionsByMonths[i], sample)
-				}
-				break
 			}
-
+		}
 	}
 
-	fmt.Println("длина января ", len(transactionsByMonths[0]))
-
 	total := int64(0)
-	partSize := len(transactionsByMonths) / goroutines // Динамически поменяем в For
+	partSize := len(months) / goroutines // Динамически поменяем в For
 	for i := 0; i < goroutines; i++ {
 
-		part := transactionsByMonths[i*partSize : (i+1)*partSize]
+		part := months[i*partSize : (i+1)*partSize]
 		go func() {
 			for _, element := range part {
-				sum := sum(element)
+				sum := sum(element.transactions)
+				total += sum
 				fmt.Println(sum / 100)
 			}
 			wg.Done()
@@ -222,6 +120,7 @@ func (t *Card) SumConcurrently(goroutines int) int64 {
 	}
 
 	wg.Wait()
+	fmt.Println("За выбранный промежуток времени было потрачено ", total / 100, " рублей")
 	return total
 }
 

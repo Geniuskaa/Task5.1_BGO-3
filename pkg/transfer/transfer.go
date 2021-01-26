@@ -7,6 +7,7 @@ import (
 	"github.com/Geniuskaa/Task5.1_BGO-3/pkg/transaction"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Service struct {
@@ -60,7 +61,7 @@ func isValid(num string) error {
 	return ErrInvalidCardNumber
 }
 
-func (s *Service) Card2Card(from, to string, amount int64, time int64) (total int64, err error) {
+func (s *Service) Card2Card(from, to string, amount int64, time time.Time) (total int64, err error) {
 	errOfValidCardFrom := isValid(from)
 	if errOfValidCardFrom != nil {
 		fmt.Println("Введены некоректные данные карты.")
@@ -100,7 +101,7 @@ func (s *Service) Card2Card(from, to string, amount int64, time int64) (total in
 	return 0, ErrMoneyOnCardOfSenderDontEnough
 }
 
-func (s *Service) addTransaction(index int, amount int64, time int64) {
+func (s *Service) addTransaction(index int, amount int64, time time.Time) {
 		s.CardSvc.StoreOfCards[index].Transactions = append(s.CardSvc.StoreOfCards[index].Transactions, &transaction.Transaction{
 		Id:     20, // rand.Int63n(20)
 		Amount: amount * 100,
@@ -110,7 +111,7 @@ func (s *Service) addTransaction(index int, amount int64, time int64) {
 	})
 }
 
-func (s *Service) Purchase(amount int64, index int, time int64) {
+func (s *Service) Purchase(amount int64, index int, time time.Time) {
 	s.addTransaction(index, amount, time)
 	fmt.Println("Сумма вашей покупки ", amount, " рублей")
 }
